@@ -45,7 +45,17 @@ void setup() {
     sensorData.setupLineSensors(S0, S1, S2, S3, SIG);
 
     if (CALIBRATION_FLAG) {
-        sensorData.calibrateSensors(true);  // Perform full calibration
+        // Calibration mode
+        unsigned long startTime = millis();
+        unsigned long calibrationTime = 5000;  // 5 seconds
+    
+        Serial.println("Starting calibration...");
+    
+        while (millis() - startTime < calibrationTime) {
+          sensorData.calibrateSensors(true);
+        }
+
+        Serial.println("Calibration complete.");
     } else {
         sensorData.calibrateSensors(false);
     }
@@ -74,12 +84,12 @@ void loop() {
     float error = linePosition - 7500;
 
     // Update integral with last six errors for smoother calculation
-    error6 = error5;
-    error5 = error4;
-    error4 = error3;
-    error3 = error2;
-    error2 = error1;
-    error1 = error;
+    // error6 = error5;
+    // error5 = error4;
+    // error4 = error3;
+    // error3 = error2;
+    // error2 = error1;
+    // error1 = error;
     //integral = error6 + error5 + error4 + error3 + error2 + error1 + error;
     integral = integral + error;
 
