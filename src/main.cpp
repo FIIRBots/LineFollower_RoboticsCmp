@@ -10,20 +10,18 @@ LF_SData sensorData;
 /*
     -- sensor pins --
 */
-#define S0 D11   // Multiplexer select pin S0
-#define S1 D12   // Multiplexer select pin S1
-#define S2 D13   // Multiplexer select pin S2
-#define S3 D14   // Multiplexer select pin S3
+#define S0 D0  // Multiplexer select pin S0
+#define S1 D1   // Multiplexer select pin S1
+#define S2 D2   // Multiplexer select pin S2
+#define S3 D3   // Multiplexer select pin S3
 #define SIG A6   // Analog signal pin from multiplexer
 
-/*
-    -- motor pins --
-*/
-#define M1DIR D4  // PWM pin for M1A
-#define M1PWM D8  // GPIO pin for M2A
-#define M2DIR D5  // PWM pin for M1B
-#define M2PWM D9  // GPIO pin for M2B
+#define M1DIR D5  // GPIO is actually connected to AENBL because both are pwm capable 
+#define M1PWM D4  // PWM is actually connected to APHASE because both are pwm capable 
+#define M2DIR D7  // GPIO
+#define M2PWM D6  // PWM 
 DRV8835MotorShield motors(M1DIR, M1PWM, M2DIR, M2PWM);
+
 
 // PID constants
 #define KP 0.22
@@ -123,20 +121,25 @@ void loop() {
         // Serial.print("right = ");
         // Serial.println(right);
 
-        motors.setM1Speed(80);
-        motors.setM2Speed(-70);
+        // motors.setM1Speed(80);
+        // motors.setM2Speed(-70);
+
     } else if (linePosition >= 12500) {
         // xmotion.MotorControl(-70, 80);
-        motors.setM1Speed(-70);
-        motors.setM2Speed(80);
+
+        // motors.setM1Speed(-70);
+
+        // motors.setM2Speed(80);
+
     } else {
         // xmotion.MotorControl(map(leftMotorSpeed, 0, 100, 0, 255), map(rightMotorSpeed, 0, 100, 0, 255));
         int left = map(leftMotorSpeed, 0, 100, 0, 255);
+
         int right = map(rightMotorSpeed, 0, 100, 0, 255);
 
-        motors.setM1Speed(left);
-        motors.setM2Speed(right);
+        // motors.setM1Speed(left);
+        // motors.setM2Speed(right);
     }
-
+    
     delay(5);
 }
