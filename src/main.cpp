@@ -1,14 +1,15 @@
 #include <Arduino.h>
+#include <WiFi.h>
 #include <DRV8835MotorShield.h>
 #include "LF_SData.h"
-#include <WiFi.h>
+#include "WebServerHandler.h"
 #include "arduino_secrets.h"   // put SSID/PASS in Secret tab
 
 WiFiServer server(80);
 
 LF_SData sensorData;
 
-#define CALIBRATION_FLAG true
+#define CALIBRATION_FLAG false
 #define DEBUG_FLAG false
 #define SETUP_WIFI false
 
@@ -51,54 +52,6 @@ int setMaxSpeed = 0, maxSpeed = 0;
 int error1 = 0, error2 = 0, error3 = 0, error4 = 0, error5 = 0, error6 = 0;
 unsigned long startTime = 0, currentTime = 0, elapsedTime = 0, accelerationTime = 500;
 
-void handleWeb() {
-    WiFiClient client = server.available();
-    if (!client) return;
-  
-    // Read the request line
-    String req = client.readStringUntil('\r');
-    client.readStringUntil('\n'); // skip remainder
-  
-    // If it's a GET with params, e.g. "/?kp=0.3&ki=0.01&kd=8&ref=200"
-    if (req.startsWith("GET /?")) {
-      int p = req.indexOf('?') + 1;
-      int e = req.indexOf(' ', p);
-      String qs = req.substring(p, e);
-  
-      // split on '&'
-      int i = 0;
-      while (i < qs.length()) {
-        int eq = qs.indexOf('=', i);
-        int amp = qs.indexOf('&', i);
-        if (amp < 0) amp = qs.length();
-        String key   = qs.substring(i, eq);
-        String value = qs.substring(eq+1, amp);
-  
-        if (key == "kp")  KP               = value.toFloat();
-        else if (key== "ki")  KI            = value.toFloat();
-        else if (key== "kd")  KD            = value.toFloat();
-        else if (key== "ref") REFERENCE_SPEED = value.toInt();
-  
-        i = amp + 1;
-      }
-    }
-  
-    // Serve back a tiny HTML form
-    client.println("HTTP/1.1 200 OK");
-    client.println("Content-Type: text/html");
-    client.println();
-    client.println("<!DOCTYPE HTML><html><body>");
-    client.println("<h2>Portenta PID Tuner</h2>");
-    client.println("<form action=\"/\">");
-    client  .print("KP: <input name=\"kp\" value=\""); client.print(KP); client.println("\"><br>");
-    client  .print("KI: <input name=\"ki\" value=\""); client.print(KI); client.println("\"><br>");
-    client  .print("KD: <input name=\"kd\" value=\""); client.print(KD); client.println("\"><br>");
-    client  .print("Ref Speed: <input name=\"ref\" value=\""); client.print(REFERENCE_SPEED); client.println("\"><br><br>");
-    client.println("<input type=\"submit\" value=\"Update\">");
-    client.println("</form></body></html>");
-    client.stop();
-  }
-  
 
 void setup() {
     if (DEBUG_FLAG) {
@@ -135,12 +88,14 @@ void setup() {
     if (CALIBRATION_FLAG) {
         // Calibration mode
         unsigned long startTime = millis();
-        unsigned long calibrationTime = 5000;  // 5 seconds
+        unsigned long calibrationTime = 15000;  // 5 seconds
 
         Serial.begin(115200);
         while(!Serial) {
             ; // wait for serial port to connect. Needed for native USB port only
         }
+
+        delay(5000);
     
         Serial.println("Starting calibration...");
     
@@ -197,7 +152,7 @@ void loop() {
         Serial.println(linePosition);
 
         // Print sensor values
-        sensorData.getLiveSerialPrint(true, false);
+        sensorData.getLiveSerialPrint(true);
 
         // long position = sensorData.getLinePosition();
         // Serial.print("Line Position: ");

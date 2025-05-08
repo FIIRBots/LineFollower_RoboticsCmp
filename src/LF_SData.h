@@ -6,15 +6,12 @@
 
 class LF_SData {
 public:
-    void setupDistanceSensor(uint8_t distancePin);
     void setupLineSensors(uint8_t s0, uint8_t s1, uint8_t s2, uint8_t s3, uint8_t sig);
     void calibrateSensors(bool fullCalibration);
-    void getLiveSerialPrint(bool printSensors, bool printDistance);
+    void getLiveSerialPrint(bool printSensors);
     long getLinePosition();
-    int16_t getDistance();
 
 private:
-    uint8_t distanceSensorPin;
     uint8_t S0, S1, S2, S3, SIG;
     const int numSensors = 16;
     int sensorValues[16];
@@ -35,11 +32,6 @@ private:
     void initializeSerial();
     bool isSerialConnected();
 };
-
-void LF_SData::setupDistanceSensor(uint8_t distancePin) {
-    distanceSensorPin = distancePin;
-    pinMode(distanceSensorPin, INPUT);
-}
 
 void LF_SData::setupLineSensors(uint8_t s0, uint8_t s1, uint8_t s2, uint8_t s3, uint8_t sig) {
     S0 = s0;
@@ -127,7 +119,7 @@ void LF_SData::saveCalibration() {
     }
 }
 
-void LF_SData::getLiveSerialPrint(bool printSensors, bool printDistance) {
+void LF_SData::getLiveSerialPrint(bool printSensors) {
     total = 0;
     weightedSum = 0;
 
@@ -166,13 +158,6 @@ void LF_SData::getLiveSerialPrint(bool printSensors, bool printDistance) {
             Serial.print(" | ");
         }
 
-        if (printDistance) {
-            int16_t distance = getDistance();
-            Serial.print("Distance: ");
-            Serial.print(distance);
-            Serial.print(" mm");
-        }
-
         Serial.println();
     }
 }
@@ -199,32 +184,6 @@ long LF_SData::getLinePosition() {
     }
 
     return linePosition;
-}
-
-int16_t LF_SData::getDistance() {
-    int16_t t = pulseIn(distanceSensorPin, HIGH);
-
-    if (t == 0) {
-        // pulseIn() did not detect the start of a pulse within 1 second.
-        if (!serialInitialized) {
-            initializeSerial();
-        }
-        Serial.println("timeout");
-        return -1;
-    } else if (t > 1850) {
-        // No detection.
-        return -1;
-    } else {
-        // Valid pulse width reading. Convert pulse width in microseconds to distance in millimeters.
-        int16_t d = (t - 1000) * 3 / 4;
-
-        // Limit minimum distance to 0.
-        if (d < 0) {
-            d = 0;
-        }
-
-        return d;
-    }
 }
 
 int LF_SData::readMultiplexer(int channel) {
