@@ -36,39 +36,49 @@ float KD = 9.2;
 float previousError = 0;
 float integral = 0;
 
-float setBaseSpeed = 0, baseSpeed = 0;
-int setMaxSpeed = 0, maxSpeed = 0;
+float setBaseSpeed = 50;
+float baseSpeed = 0;
+
+int setMaxSpeed = 70;
+int maxSpeed = 0;
 
 // Variables to store the last six error values for smoother KI calculation
-int error1 = 0, error2 = 0, error3 = 0, error4 = 0, error5 = 0, error6 = 0;
+// int error1 = 0, error2 = 0, error3 = 0, error4 = 0, error5 = 0, error6 = 0;
 unsigned long startTime = 0, currentTime = 0, elapsedTime = 0, accelerationTime = 500;
 
 
 void setup() {
-    // Create Wi-Fi Access Point
-    Serial.println("Starting Access Point...");
+    if (DEBUG_FLAG) {
+        Serial.begin(115200);
+        while (!Serial) {
+            ;
+        }
+
+        if (SETUP_WIFI) {
+            delay(5000);
+        }
+
+        // Create Wi-Fi Access Point
+        Serial.println("Starting Access Point...");
+    }
+    
     if (WiFi.beginAP(SECRET_SSID, SECRET_PASS) != WL_AP_LISTENING) {
-        Serial.println("Failed to start AP");
+        if (DEBUG_FLAG) Serial.println("Failed to start AP");
         while (true); // halt
     }
 
-    
-    Serial.println("Access Point started");
-    Serial.print("IP Address: ");
-    Serial.println(WiFi.localIP());  // This will usually be 192.168.3.1
+    if (DEBUG_FLAG) {
+        Serial.println("Access Point started");
+        Serial.print("IP Address: ");
+        Serial.println(WiFi.localIP()); // This will usually be 192.168.3.1
+    }
     server.begin();
 
-    sensorData.setupLineSensors(S0, S1, S2, S3, SIG);
-
-    // Determine mode based on dip switch settings
-    if (SLOW_MODE) {
-        // Safe Run mode
-        setBaseSpeed = 50;
-        setMaxSpeed = 70;
-    } else {
-        setBaseSpeed = 70;
-        setMaxSpeed = 90;
+    if (SETUP_WIFI) {
+        delay(10000);
     }
+
+    sensorData.setupLineSensors(S0, S1, S2, S3, SIG);
 
     if (CALIBRATION_FLAG) {
         // Calibration mode
@@ -125,8 +135,10 @@ void loop() {
 
     float correction = (KP * error) + (KI * integral) + (KD * derivative);
 
-    Serial.print("correction = ");
-    Serial.println(correction);
+    if (DEBUG_FLAG) {
+        Serial.print("correction = ");
+        Serial.println(correction);
+    }
 
     int leftMotorSpeed = constrain(baseSpeed - correction, 0, maxSpeed);
     int rightMotorSpeed = constrain(baseSpeed + correction, 0, maxSpeed);
@@ -139,30 +151,24 @@ void loop() {
         maxSpeed = setMaxSpeed;
     }
 
-    int left = 0;
-    int right = 0;
-
     if (linePosition <= 2500) {
-        // 80% of 400, 70% of 400
-        left = 31;
-        right = -27;
-
-        motors.setMotor1Speed(left);
-        motors.setMotor2Speed(right);
+        leftMotorSpeed = 31;
+        rightMotorSpeed = -27;
     } else if (linePosition >= 12500) {
-        // 70% of 400, 80% of 400
-        left = -27;
-        right = 31;
+        leftMotorSpeed = -27;
+        rightMotorSpeed = 31;
+    }
 
-        motors.setMotor1Speed(left);
-        motors.setMotor2Speed(right);
-    } else {
-        // xmotion.MotorControl(map(leftMotorSpeed, 0, 100, 0, 255), map(rightMotorSpeed, 0, 100, 0, 255));
-        left = leftMotorSpeed;
-        right = rightMotorSpeed;
+    motors.setMotor1Speed(leftMotorSpeed);
+    motors.setMotor2Speed(rightMotorSpeed);
 
-        motors.setMotor1Speed(left);
-        motors.setMotor2Speed(right);
+    if (DEBUG_FLAG) {
+        Serial.print(" | Left Motor Speed: ");
+        Serial.print(leftMotorSpeed);
+        Serial.print(" | Right Motor Speed: ");
+        Serial.println(rightMotorSpeed);
+
+        sensorData.getLiveSerialPrint(true);
     }
 
     delay(5);

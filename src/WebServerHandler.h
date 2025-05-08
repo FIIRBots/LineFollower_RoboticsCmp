@@ -7,6 +7,8 @@
 extern float KP, KI, KD;
 extern int REFERENCE_SPEED;
 extern WiFiServer server;
+extern float setBaseSpeed;
+extern int setMaxSpeed;
 
 void handleWeb();
 
