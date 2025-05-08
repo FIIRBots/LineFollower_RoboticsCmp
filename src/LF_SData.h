@@ -73,27 +73,27 @@ void LF_SData::calibrateSensors(bool fullCalibration) {
         }
         Serial.println("Calibration complete");
 
-        for (int i = 0; i < numSensors; i++) {
-            Serial.print("Sensor ");
-            Serial.print(i);
-            Serial.print(": Min = ");
-            Serial.print(sensorMin[i]);
-            Serial.print(", Max = ");
-            Serial.println(sensorMax[i]);
-        }
+        // for (int i = 0; i < numSensors; i++) {
+        //     Serial.print("Sensor ");
+        //     Serial.print(i);
+        //     Serial.print(": Min = ");
+        //     Serial.print(sensorMin[i]);
+        //     Serial.print(", Max = ");
+        //     Serial.println(sensorMax[i]);
+        // }
 
         saveCalibration();
     } else {
         Serial.println("Loading calibration data...");
 
-        for (int i = 0; i < numSensors; i++) {
-            Serial.print("Sensor ");
-            Serial.print(i);
-            Serial.print(": Min = ");
-            Serial.print(sensorMin[i]);
-            Serial.print(", Max = ");
-            Serial.println(sensorMax[i]);
-        }
+        // for (int i = 0; i < numSensors; i++) {
+        //     Serial.print("Sensor ");
+        //     Serial.print(i);
+        //     Serial.print(": Min = ");
+        //     Serial.print(sensorMin[i]);
+        //     Serial.print(", Max = ");
+        //     Serial.println(sensorMax[i]);
+        // }
 
 
         loadCalibration();

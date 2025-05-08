@@ -1,17 +1,18 @@
 #include <Arduino.h>
 #include <WiFi.h>
-#include <DRV8835MotorShield.h>
 #include "LF_SData.h"
+#include "MotorDriver.h"
 #include "WebServerHandler.h"
-#include "arduino_secrets.h"   // put SSID/PASS in Secret tab
+#include "arduino_secrets.h"
 
 WiFiServer server(80);
 
 LF_SData sensorData;
 
 #define CALIBRATION_FLAG false
-#define DEBUG_FLAG false
+#define DEBUG_FLAG true
 #define SETUP_WIFI false
+#define SLOW_MODE false
 
 /*
     -- sensor pins --
@@ -22,25 +23,15 @@ LF_SData sensorData;
 #define S3 D3   // Multiplexer select pin S3
 #define SIG A6   // Analog signal pin from multiplexer
 
-#define M1DIR D5  // GPIO
-#define M1PWM D4  // PWM 
+#define M1DIR D4  // GPIO
+#define M1PWM D5  // PWM 
 #define M2DIR D7  // GPIO
 #define M2PWM D6  // PWM 
-DRV8835MotorShield motors(M1DIR, M1PWM, M2DIR, M2PWM);
+MotorDriver motors(M1DIR, M1PWM, M2DIR, M2PWM);
 
-
-#define MIN_SPEED -400
-#define MAX_SPEED 400
-// #define REFERENCE_SPEED 255
-
-// PID constants
-// #define KP 0.22
-// #define KI 0.008
-// #define KD 9.2
 float KP = 0.22;
 float KI = 0.008;
 float KD = 9.2;
-int   REFERENCE_SPEED = 255;
 
 float previousError = 0;
 float integral = 0;
@@ -54,18 +45,6 @@ unsigned long startTime = 0, currentTime = 0, elapsedTime = 0, accelerationTime 
 
 
 void setup() {
-    if (DEBUG_FLAG) {
-        Serial.begin(115200);
-        while (!Serial) {
-            ; // wait for serial port to connect. Needed for native USB port only
-        }
-    }
-    
-
-    if (!Serial) {
-        Serial.begin(115200);
-    }
-    
     // Create Wi-Fi Access Point
     Serial.println("Starting Access Point...");
     if (WiFi.beginAP(SECRET_SSID, SECRET_PASS) != WL_AP_LISTENING) {
@@ -79,11 +58,17 @@ void setup() {
     Serial.println(WiFi.localIP());  // This will usually be 192.168.3.1
     server.begin();
 
-    if (SETUP_WIFI) {
-        delay(10000);   
-    }
-
     sensorData.setupLineSensors(S0, S1, S2, S3, SIG);
+
+    // Determine mode based on dip switch settings
+    if (SLOW_MODE) {
+        // Safe Run mode
+        setBaseSpeed = 50;
+        setMaxSpeed = 70;
+    } else {
+        setBaseSpeed = 70;
+        setMaxSpeed = 90;
+    }
 
     if (CALIBRATION_FLAG) {
         // Calibration mode
@@ -103,16 +88,15 @@ void setup() {
           sensorData.calibrateSensors(true);
         }
 
-        
-
         Serial.println("Calibration complete.");
     } else {
         sensorData.calibrateSensors(false);
     }
-
 }
 
 void loop() {
+    handleWeb();
+
     if (startTime == 0) {
         startTime = millis();
     }
@@ -122,8 +106,6 @@ void loop() {
         baseSpeed = map(elapsedTime, 0, accelerationTime, 0, setBaseSpeed);
         maxSpeed = map(elapsedTime, 0, accelerationTime, 0, setMaxSpeed);
     }
-
-    handleWeb();
 
     long linePosition = sensorData.getLinePosition();
     float error = linePosition - 7500;
@@ -143,66 +125,45 @@ void loop() {
 
     float correction = (KP * error) + (KI * integral) + (KD * derivative);
 
+    Serial.print("correction = ");
+    Serial.println(correction);
+
     int leftMotorSpeed = constrain(baseSpeed - correction, 0, maxSpeed);
     int rightMotorSpeed = constrain(baseSpeed + correction, 0, maxSpeed);
 
-    if (DEBUG_FLAG) {
-        // Debug mode: print sensor data
-        Serial.print("Line Position: ");
-        Serial.println(linePosition);
-
-        // Print sensor values
-        sensorData.getLiveSerialPrint(true);
-
-        // long position = sensorData.getLinePosition();
-        // Serial.print("Line Position: ");
-        // Serial.println(position);
-    }
-
     if ((linePosition > 2000 && linePosition <= 4000) || (linePosition >= 11000 && linePosition < 13000)) {  // Medium turn
-        baseSpeed = constrain(setBaseSpeed * 0.9, 0.5 * REFERENCE_SPEED, setBaseSpeed); // 50% of REFERENCE speed
-        maxSpeed = constrain(setMaxSpeed * 0.9, 0.6 * REFERENCE_SPEED, setMaxSpeed); // 60% of REFERENCE speed
+        baseSpeed = constrain(setBaseSpeed * 0.9, 50, setBaseSpeed);
+        maxSpeed = constrain(setMaxSpeed * 0.9, 60, setMaxSpeed);
     } else {                     // Straight line
         baseSpeed = setBaseSpeed;  // Restore full speed
         maxSpeed = setMaxSpeed;
     }
 
+    int left = 0;
+    int right = 0;
+
     if (linePosition <= 2500) {
         // 80% of 400, 70% of 400
-        motors.setSpeeds(0.8 * REFERENCE_SPEED, -0.7 * REFERENCE_SPEED); 
+        left = 31;
+        right = -27;
 
-        // xmotion.MotorControl(80, -70);
-
-        // motors.setM1Speed(80);
-        // motors.setM2Speed(-70);
-
+        motors.setMotor1Speed(left);
+        motors.setMotor2Speed(right);
     } else if (linePosition >= 12500) {
         // 70% of 400, 80% of 400
-        motors.setSpeeds(-0.7 * REFERENCE_SPEED, 0.8 * REFERENCE_SPEED);
+        left = -27;
+        right = 31;
 
-        // xmotion.MotorControl(-70, 80);
-
-        // motors.setM1Speed(-70);
-        // motors.setM2Speed(80);
-
+        motors.setMotor1Speed(left);
+        motors.setMotor2Speed(right);
     } else {
         // xmotion.MotorControl(map(leftMotorSpeed, 0, 100, 0, 255), map(rightMotorSpeed, 0, 100, 0, 255));
-        int left = map(leftMotorSpeed, 0, 100, 0, REFERENCE_SPEED);
-        int right = map(rightMotorSpeed, 0, 100, 0, REFERENCE_SPEED);
+        left = leftMotorSpeed;
+        right = rightMotorSpeed;
 
-        // motors.setM1Speed(left);
-        // motors.setM2Speed(right);
-
-        if (DEBUG_FLAG) {
-            Serial.print("left = ");
-            Serial.println(left);
-
-            Serial.print("right = ");
-            Serial.println(right);
-        }
-
-        motors.setSpeeds(left, right);
+        motors.setMotor1Speed(left);
+        motors.setMotor2Speed(right);
     }
-    
+
     delay(5);
 }
