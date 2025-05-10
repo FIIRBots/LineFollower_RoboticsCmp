@@ -27,7 +27,9 @@ public:
         lastSpeed_   = speedPercent;
 
         const bool fwd = (speedPercent >= 0);
-        const int  pwm = map(abs(speedPercent), 0, 100, 0, 255);
+        const int pwm = fwd
+            ? map(speedPercent, 0, 100, 255, 0)     // FORWARD: 0 = stop, 100 = full
+            : map(-speedPercent, 0, 100, 0, 255);   // REVERSE: -1 = fast, -100 = stop
 
         digitalWrite(dirPin_, (fwd ^ inv_) ? HIGH : LOW);
         analogWrite (pwmPin_, pwm);

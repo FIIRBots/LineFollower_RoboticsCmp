@@ -12,7 +12,6 @@ LF_SData sensorData;
 #define CALIBRATION_FLAG false
 #define DEBUG_FLAG true
 #define SETUP_WIFI false
-#define SLOW_MODE false
 
 /*
     -- sensor pins --
@@ -29,9 +28,9 @@ LF_SData sensorData;
 #define M2PWM D6  // PWM 
 MotorDriver motors(M1DIR, M1PWM, M2DIR, M2PWM);
 
-float KP = 0.22;
-float KI = 0.008;
-float KD = 9.2;
+float KP = 0.1;
+float KI = 0.001;
+float KD = 2.0;
 
 float previousError = 0;
 float integral = 0;
@@ -120,6 +119,11 @@ void loop() {
     long linePosition = sensorData.getLinePosition();
     float error = linePosition - 7500;
 
+    if (DEBUG_FLAG) {
+        Serial.print("error = ");
+        Serial.println(error);
+    }
+
     // Update integral with last six errors for smoother calculation
     // error6 = error5;
     // error5 = error4;
@@ -129,23 +133,54 @@ void loop() {
     // error1 = error;
     //integral = error6 + error5 + error4 + error3 + error2 + error1 + error;
     integral = integral + error;
+    integral = constrain(integral, -10000, 10000);  // or reset when error is big
+    if (abs(error) > 800) 
+        integral = 0;
 
     float derivative = error - previousError;
     previousError = error;
 
     float correction = (KP * error) + (KI * integral) + (KD * derivative);
+    correction = constrain(correction, -150, 150);  // or some reasonable bound
+
 
     if (DEBUG_FLAG) {
         Serial.print("correction = ");
         Serial.println(correction);
     }
 
-    int leftMotorSpeed = constrain(baseSpeed - correction, 0, maxSpeed);
-    int rightMotorSpeed = constrain(baseSpeed + correction, 0, maxSpeed);
+    // int leftMotorSpeed = constrain(baseSpeed - correction, 0, maxSpeed);
+    // int rightMotorSpeed = constrain(baseSpeed + correction, 0, maxSpeed);
+
+    int rawLeft = baseSpeed - correction;
+    int rawRight = baseSpeed + correction;
+
+    int minEffectiveSpeed = 20; // motors may not even move below this
+
+    int leftMotorSpeed = constrain(abs(rawLeft), 0, maxSpeed);
+    int rightMotorSpeed = constrain(abs(rawRight), 0, maxSpeed);
+
+    if (leftMotorSpeed > 0 && leftMotorSpeed < minEffectiveSpeed) leftMotorSpeed = minEffectiveSpeed;
+    if (rightMotorSpeed > 0 && rightMotorSpeed < minEffectiveSpeed) rightMotorSpeed = minEffectiveSpeed;
+
+    if (rawLeft < 0) leftMotorSpeed *= -1;
+    if (rawRight < 0) rightMotorSpeed *= -1;
+
+
+    if (DEBUG_FLAG) {
+        Serial.print(" | Left Motor Speed: ");
+        Serial.print(leftMotorSpeed);
+        Serial.print(" | Right Motor Speed: ");
+        Serial.println(rightMotorSpeed);
+    }
 
     if ((linePosition > 2000 && linePosition <= 4000) || (linePosition >= 11000 && linePosition < 13000)) {  // Medium turn
         baseSpeed = constrain(setBaseSpeed * 0.9, 50, setBaseSpeed);
         maxSpeed = constrain(setMaxSpeed * 0.9, 60, setMaxSpeed);
+        Serial.print(" | base Speed: ");
+        Serial.print(baseSpeed);
+        Serial.print(" | max Speed: ");
+        Serial.println(maxSpeed);
     } else {                     // Straight line
         baseSpeed = setBaseSpeed;  // Restore full speed
         maxSpeed = setMaxSpeed;
@@ -171,5 +206,5 @@ void loop() {
         sensorData.getLiveSerialPrint(true);
     }
 
-    delay(5);
+    delay(500);
 }
