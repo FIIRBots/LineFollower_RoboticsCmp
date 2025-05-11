@@ -24,7 +24,7 @@ private:
     bool serialInitialized = false;
     const int noLineThreshold = 450;  // Threshold for determining no line detected
 
-    const int positionValues[16] = {0, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 11000, 12000, 13000, 14000, 15000};
+    const int positionValues[16] = {0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500};
 
     int readMultiplexer(int channel);
     void loadCalibration();
@@ -135,7 +135,7 @@ void LF_SData::getLiveSerialPrint(bool printSensors) {
             Serial.print("| ");
             for (int i = 0; i < numSensors; i++) {
                 sensorValues[i] = readMultiplexer(i);
-                long normalizedValue = map(sensorValues[i], sensorMin[i], sensorMax[i], 0, 1000);
+                long normalizedValue = sensorValues[i] > 100 ? map(sensorValues[i], sensorMin[i], sensorMax[i], 0, 1000) : 1;
                 weightedSum += normalizedValue * positionValues[i];
                 total += normalizedValue;
 

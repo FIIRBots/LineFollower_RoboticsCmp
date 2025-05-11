@@ -4,11 +4,13 @@
 #include <WiFi.h>
 
 // Externally defined PID variables
-extern float KP, KI, KD;
+extern double KP, KI, KD;
 extern int REFERENCE_SPEED;
 extern WiFiServer server;
-extern float setBaseSpeed;
-extern int setMaxSpeed;
+extern double BASE_SPEED;
+extern bool robotActive;
+
+// #define DEBUG_FLAG true
 
 void handleWeb();
 

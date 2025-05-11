@@ -23,8 +23,7 @@ void handleWeb() {
             if (key == "kp")       KP = value.toFloat();
             else if (key == "ki")  KI = value.toFloat();
             else if (key == "kd")  KD = value.toFloat();
-            else if (key == "base") setBaseSpeed = value.toFloat();
-            else if (key == "max")  setMaxSpeed  = value.toInt();
+            else if (key == "base") BASE_SPEED = value.toFloat();
 
             i = amp + 1;
         }
@@ -32,11 +31,24 @@ void handleWeb() {
         client.println("HTTP/1.1 200 OK");
         client.println("Content-Type: application/json");
         client.println();
-        client.print("{\"kp\":");   client.print(KP);
-        client.print(",\"ki\":");   client.print(KI);
-        client.print(",\"kd\":");   client.print(KD);
-        client.print(",\"base\":"); client.print(setBaseSpeed);
-        client.print(",\"max\":");  client.print(setMaxSpeed);
+        client.print("{\"kp\":");   client.print(KP, 4);
+        client.print(",\"ki\":");   client.print(KI, 4);
+        client.print(",\"kd\":");   client.print(KD, 4);
+        client.print(",\"base\":"); client.print(BASE_SPEED);
+
+        client.println("}");
+        client.stop();
+        return;
+    }
+
+    if (req.startsWith("GET /toggle")) {
+        robotActive = !robotActive;
+
+        client.println("HTTP/1.1 200 OK");
+        client.println("Content-Type: application/json");
+        client.println();
+        client.print("{\"active\": ");
+        client.print(robotActive ? "true" : "false");
         client.println("}");
         client.stop();
         return;
@@ -49,13 +61,15 @@ void handleWeb() {
     client.println("<!DOCTYPE html><html><head><title>PID Tuner</title></head><body>");
     client.println("<h2>Portenta PID Tuner (AJAX)</h2>");
 
-    client.print("KP: <input type='number' step='any' id='kp' value='"); client.print(KP); client.println("'><br>");
-    client.print("KI: <input type='number' step='any' id='ki' value='"); client.print(KI); client.println("'><br>");
-    client.print("KD: <input type='number' step='any' id='kd' value='"); client.print(KD); client.println("'><br>");
-    client.print("Base Speed: <input type='number' step='any' id='base' value='"); client.print(setBaseSpeed); client.println("'><br>");
-    client.print("Max Speed: <input type='number' step='1' id='max' value='"); client.print(setMaxSpeed); client.println("'><br>");
+    client.print("KP: <input type='number' step='any' id='kp' value='"); client.print(KP, 4); client.println("'><br>");
+    client.print("KI: <input type='number' step='any' id='ki' value='"); client.print(KI, 4); client.println("'><br>");
+    client.print("KD: <input type='number' step='any' id='kd' value='"); client.print(KD, 4); client.println("'><br>");
+    client.print("Base Speed: <input type='number' step='any' id='base' value='"); client.print(BASE_SPEED); client.println("'><br>");
 
     client.println("<button onclick='updatePID()'>Update</button>");
+
+    client.println("<button onclick='toggleRobot()'>Toggle Robot</button><br>");
+
     client.println("<p id='status'>Idle</p>");
 
     client.println(R"rawliteral(
@@ -65,10 +79,8 @@ void handleWeb() {
         let ki   = document.getElementById("ki").value;
         let kd   = document.getElementById("kd").value;
         let base = document.getElementById("base").value;
-        let max  = document.getElementById("max").value;
-
         let xhttp = new XMLHttpRequest();
-        xhttp.open("GET", `/update?kp=${kp}&ki=${ki}&kd=${kd}&base=${base}&max=${max}`, true);
+        xhttp.open("GET", `/update?kp=${kp}&ki=${ki}&kd=${kd}&base=${base}`, true);
         xhttp.onreadystatechange = function() {
             if (this.readyState == 4 && this.status == 200) {
                 document.getElementById("status").innerText = "Updated!";
@@ -76,7 +88,20 @@ void handleWeb() {
         };
         xhttp.send();
     }
+        
+    function toggleRobot() {
+        let xhttp = new XMLHttpRequest();
+        xhttp.open("GET", "/toggle", true);
+        xhttp.onreadystatechange = function() {
+            if (this.readyState == 4 && this.status == 200) {
+                let response = JSON.parse(this.responseText);
+                document.getElementById("status").innerText = "Robot is now " + (response.active ? "Active" : "Stopped");
+            }
+        };
+        xhttp.send();
+    }
     </script>
+
     </body></html>
     )rawliteral");
 

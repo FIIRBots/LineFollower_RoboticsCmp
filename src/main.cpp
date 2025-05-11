@@ -10,7 +10,7 @@ WiFiServer server(80);
 LF_SData sensorData;
 
 #define CALIBRATION_FLAG false
-#define DEBUG_FLAG true
+#define DEBUG_FLAG false
 #define SETUP_WIFI false
 
 /*
@@ -28,23 +28,41 @@ LF_SData sensorData;
 #define M2PWM D6  // PWM 
 MotorDriver motors(M1DIR, M1PWM, M2DIR, M2PWM);
 
-float KP = 0.1;
-float KI = 0.001;
-float KD = 2.0;
+#define MAX_OUTPUT 35
 
-float previousError = 0;
-float integral = 0;
+bool robotActive = false;
 
-float setBaseSpeed = 50;
-float baseSpeed = 0;
+double BASE_SPEED = 40; 
 
-int setMaxSpeed = 70;
-int maxSpeed = 0;
+double KP = 0.022;
+double KI = 0.00;
+double KD = 0.0;
 
-// Variables to store the last six error values for smoother KI calculation
-// int error1 = 0, error2 = 0, error3 = 0, error4 = 0, error5 = 0, error6 = 0;
-unsigned long startTime = 0, currentTime = 0, elapsedTime = 0, accelerationTime = 500;
+const float alpha = 0.3; // Lower = smoother but slower response
+double smoothed_error = 0;
 
+double last_derivative = 0;
+const float dAlpha = 0.4;
+
+double integral = 0;
+double previousError = 0;
+
+double PID(double error) {
+//   double output;
+
+//   // Apply filtered error to dampen oscillations
+// 
+
+    integral += error;
+
+    double raw_derivative = error - previousError;
+    last_derivative = dAlpha * raw_derivative + (1 - dAlpha) * last_derivative;
+
+    previousError = error;
+
+    double correction = (KP * error) + (KI * integral) + (KD * last_derivative);
+    return correction;
+}
 
 void setup() {
     if (DEBUG_FLAG) {
@@ -106,105 +124,45 @@ void setup() {
 void loop() {
     handleWeb();
 
-    if (startTime == 0) {
-        startTime = millis();
-    }
-
-    elapsedTime = millis() - startTime;
-    if (elapsedTime <= accelerationTime) {
-        baseSpeed = map(elapsedTime, 0, accelerationTime, 0, setBaseSpeed);
-        maxSpeed = map(elapsedTime, 0, accelerationTime, 0, setMaxSpeed);
-    }
-
-    long linePosition = sensorData.getLinePosition();
-    float error = linePosition - 7500;
-
     if (DEBUG_FLAG) {
-        Serial.print("error = ");
-        Serial.println(error);
-    }
-
-    // Update integral with last six errors for smoother calculation
-    // error6 = error5;
-    // error5 = error4;
-    // error4 = error3;
-    // error3 = error2;
-    // error2 = error1;
-    // error1 = error;
-    //integral = error6 + error5 + error4 + error3 + error2 + error1 + error;
-    integral = integral + error;
-    integral = constrain(integral, -10000, 10000);  // or reset when error is big
-    if (abs(error) > 800) 
-        integral = 0;
-
-    float derivative = error - previousError;
-    previousError = error;
-
-    float correction = (KP * error) + (KI * integral) + (KD * derivative);
-    correction = constrain(correction, -150, 150);  // or some reasonable bound
-
-
-    if (DEBUG_FLAG) {
-        Serial.print("correction = ");
-        Serial.println(correction);
-    }
-
-    // int leftMotorSpeed = constrain(baseSpeed - correction, 0, maxSpeed);
-    // int rightMotorSpeed = constrain(baseSpeed + correction, 0, maxSpeed);
-
-    int rawLeft = baseSpeed - correction;
-    int rawRight = baseSpeed + correction;
-
-    int minEffectiveSpeed = 20; // motors may not even move below this
-
-    int leftMotorSpeed = constrain(abs(rawLeft), 0, maxSpeed);
-    int rightMotorSpeed = constrain(abs(rawRight), 0, maxSpeed);
-
-    if (leftMotorSpeed > 0 && leftMotorSpeed < minEffectiveSpeed) leftMotorSpeed = minEffectiveSpeed;
-    if (rightMotorSpeed > 0 && rightMotorSpeed < minEffectiveSpeed) rightMotorSpeed = minEffectiveSpeed;
-
-    if (rawLeft < 0) leftMotorSpeed *= -1;
-    if (rawRight < 0) rightMotorSpeed *= -1;
-
-
-    if (DEBUG_FLAG) {
-        Serial.print(" | Left Motor Speed: ");
-        Serial.print(leftMotorSpeed);
-        Serial.print(" | Right Motor Speed: ");
-        Serial.println(rightMotorSpeed);
-    }
-
-    if ((linePosition > 2000 && linePosition <= 4000) || (linePosition >= 11000 && linePosition < 13000)) {  // Medium turn
-        baseSpeed = constrain(setBaseSpeed * 0.9, 50, setBaseSpeed);
-        maxSpeed = constrain(setMaxSpeed * 0.9, 60, setMaxSpeed);
-        Serial.print(" | base Speed: ");
-        Serial.print(baseSpeed);
-        Serial.print(" | max Speed: ");
-        Serial.println(maxSpeed);
-    } else {                     // Straight line
-        baseSpeed = setBaseSpeed;  // Restore full speed
-        maxSpeed = setMaxSpeed;
-    }
-
-    if (linePosition <= 2500) {
-        leftMotorSpeed = 31;
-        rightMotorSpeed = -27;
-    } else if (linePosition >= 12500) {
-        leftMotorSpeed = -27;
-        rightMotorSpeed = 31;
-    }
-
-    motors.setMotor1Speed(leftMotorSpeed);
-    motors.setMotor2Speed(rightMotorSpeed);
-
-    if (DEBUG_FLAG) {
-        Serial.print(" | Left Motor Speed: ");
-        Serial.print(leftMotorSpeed);
-        Serial.print(" | Right Motor Speed: ");
-        Serial.println(rightMotorSpeed);
-
         sensorData.getLiveSerialPrint(true);
     }
 
-    delay(500);
+    int raw_error = sensorData.getLinePosition() - 750;
+    smoothed_error = alpha * raw_error + (1 - alpha) * smoothed_error;
+    double pid_output = constrain(PID(smoothed_error), -MAX_OUTPUT, MAX_OUTPUT);
+
+
+    if (DEBUG_FLAG) {
+        Serial.print("Sensor Error: ");
+        Serial.println(smoothed_error);
+        Serial.print("PID: ");
+        Serial.println(pid_output);
+        Serial.print("active?: ");
+        Serial.println(robotActive);
+    }
+
+    double left = BASE_SPEED + pid_output; 
+    double right = BASE_SPEED - pid_output;
+
+    if (robotActive) {
+        motors.setMotor1Speed(left);
+        motors.setMotor2Speed(right);
+    } else {
+        motors.setMotor1Speed(0);
+        motors.setMotor2Speed(0);
+    }
+
+    if (DEBUG_FLAG) {
+        Serial.print("left = ");
+        Serial.println(left);
+
+        Serial.print("right = ");
+        Serial.println(right);
+    }
+
+    // motors.setMotor1Speed(40);
+    // motors.setMotor2Speed(40);
+
+    delay(10);
 }
