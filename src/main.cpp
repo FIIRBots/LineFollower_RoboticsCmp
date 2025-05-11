@@ -51,7 +51,24 @@ double PID(double error) {
 //   double output;
 
 //   // Apply filtered error to dampen oscillations
-// 
+//   pid_error = input;
+//   double filteredError = 0.6 * lastError + 0.4 * pid_error;
+
+//   // Compute error difference using filtered derivative
+//   errorDiff = filteredError - lastError;
+//   double filteredErrorDiff = (pid_error - lastError) * 0.9 + errorDiff * 0.1;
+  
+//   errorInt += pid_error;
+//   errorInt = constrain(errorInt, -MAX_OUTPUT, MAX_OUTPUT); // Prevent integral windup
+
+//   if (pid_error == 0) {
+//     errorInt = 0;
+//   }
+
+//   output = (KP * filteredError) + (KD * filteredErrorDiff) + (KI * errorInt);
+//   lastError = pid_error;
+
+//   return output;
 
     integral += error;
 
