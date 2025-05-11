@@ -28,48 +28,26 @@ LF_SData sensorData;
 #define M2PWM D6  // PWM 
 MotorDriver motors(M1DIR, M1PWM, M2DIR, M2PWM);
 
-#define MAX_OUTPUT 35
+double MAX_OUTPUT = 35;
 
 bool robotActive = false;
 
 double BASE_SPEED = 40; 
 
-double KP = 0.022;
+double KP = 0.0375;
 double KI = 0.00;
-double KD = 0.0;
+double KD = 1.0;
 
-const float alpha = 0.3; // Lower = smoother but slower response
+const float alpha = 0.9; // Lower = smoother but slower response
 double smoothed_error = 0;
 
 double last_derivative = 0;
-const float dAlpha = 0.4;
+const float dAlpha = 0.85;
 
 double integral = 0;
 double previousError = 0;
 
 double PID(double error) {
-//   double output;
-
-//   // Apply filtered error to dampen oscillations
-//   pid_error = input;
-//   double filteredError = 0.6 * lastError + 0.4 * pid_error;
-
-//   // Compute error difference using filtered derivative
-//   errorDiff = filteredError - lastError;
-//   double filteredErrorDiff = (pid_error - lastError) * 0.9 + errorDiff * 0.1;
-  
-//   errorInt += pid_error;
-//   errorInt = constrain(errorInt, -MAX_OUTPUT, MAX_OUTPUT); // Prevent integral windup
-
-//   if (pid_error == 0) {
-//     errorInt = 0;
-//   }
-
-//   output = (KP * filteredError) + (KD * filteredErrorDiff) + (KI * errorInt);
-//   lastError = pid_error;
-
-//   return output;
-
     integral += error;
 
     double raw_derivative = error - previousError;
@@ -147,6 +125,7 @@ void loop() {
 
     int raw_error = sensorData.getLinePosition() - 750;
     smoothed_error = alpha * raw_error + (1 - alpha) * smoothed_error;
+    // smoothed_error = raw_error;
     double pid_output = constrain(PID(smoothed_error), -MAX_OUTPUT, MAX_OUTPUT);
 
 
@@ -177,9 +156,6 @@ void loop() {
         Serial.print("right = ");
         Serial.println(right);
     }
-
-    // motors.setMotor1Speed(40);
-    // motors.setMotor2Speed(40);
 
     delay(10);
 }

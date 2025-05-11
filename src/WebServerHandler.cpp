@@ -24,6 +24,7 @@ void handleWeb() {
             else if (key == "ki")  KI = value.toFloat();
             else if (key == "kd")  KD = value.toFloat();
             else if (key == "base") BASE_SPEED = value.toFloat();
+            else if (key == "max_output") MAX_OUTPUT = value.toFloat();
 
             i = amp + 1;
         }
@@ -35,6 +36,8 @@ void handleWeb() {
         client.print(",\"ki\":");   client.print(KI, 4);
         client.print(",\"kd\":");   client.print(KD, 4);
         client.print(",\"base\":"); client.print(BASE_SPEED);
+        client.print(",\"max_output\":"); client.print(MAX_OUTPUT);
+
 
         client.println("}");
         client.stop();
@@ -65,6 +68,9 @@ void handleWeb() {
     client.print("KI: <input type='number' step='any' id='ki' value='"); client.print(KI, 4); client.println("'><br>");
     client.print("KD: <input type='number' step='any' id='kd' value='"); client.print(KD, 4); client.println("'><br>");
     client.print("Base Speed: <input type='number' step='any' id='base' value='"); client.print(BASE_SPEED); client.println("'><br>");
+    client.print("Max Output: <input type='number' step='any' id='max_output' value='"); client.print(MAX_OUTPUT); client.println("'><br>");
+
+
 
     client.println("<button onclick='updatePID()'>Update</button>");
 
@@ -79,8 +85,13 @@ void handleWeb() {
         let ki   = document.getElementById("ki").value;
         let kd   = document.getElementById("kd").value;
         let base = document.getElementById("base").value;
+        let max_output = document.getElementById("max_output").value;
+
         let xhttp = new XMLHttpRequest();
-        xhttp.open("GET", `/update?kp=${kp}&ki=${ki}&kd=${kd}&base=${base}`, true);
+        
+        const url = `/update?kp=${kp}&ki=${ki}&kd=${kd}&base=${base}&max_output=${max_output}`;
+        xhttp.open("GET", url, true);
+
         xhttp.onreadystatechange = function() {
             if (this.readyState == 4 && this.status == 200) {
                 document.getElementById("status").innerText = "Updated!";
