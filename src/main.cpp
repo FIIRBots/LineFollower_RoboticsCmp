@@ -36,13 +36,13 @@ unsigned long accelerationTime = 5000; // 5 seconds
 
 bool robotActive = false;
 
-double MAX_OUTPUT = 55;
-double setBaseSpeed = 70;
+double MAX_OUTPUT = 45;
+double setBaseSpeed = 60;
 
 
-double KP = 0.048;
-double KI = 0.00000;
-double KD = 1.3;
+double KP = 0.1;
+double KI = 0.00001;
+double KD = 1.0;
 
 const float alpha = 0.9; // Lower = smoother but slower response
 double smoothed_error = 0;
@@ -158,11 +158,11 @@ void loop() {
     // double right = constrain(BASE_SPEED - pid_output, -maxSpeed, maxSpeed;
 
 
-    if ((line_value > 200 && smoothed_error <= 400) || (smoothed_error >= 1100 && smoothed_error < 1300)) {  // Medium turn
-        BASE_SPEED = setBaseSpeed * 0.9;
-    } else {                     // Straight line
-        BASE_SPEED = setBaseSpeed;  // Restore full speed
-    }
+    // if ((line_value > 200 && smoothed_error <= 400) || (smoothed_error >= 1100 && smoothed_error < 1300)) {  // Medium turn
+    //     BASE_SPEED = setBaseSpeed * 0.9;
+    // } else {                     // Straight line
+    //     BASE_SPEED = setBaseSpeed;  // Restore full speed
+    // }
 
     if (robotActive) {
         // if (line_value <= 250) {
