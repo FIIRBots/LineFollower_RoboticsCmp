@@ -1,17 +1,13 @@
 #include <Arduino.h>
-#include <WiFi.h>
+#include <IRremote.h>
+
 #include "LF_SData.h"
 #include "MotorDriver.h"
-#include "WebServerHandler.h"
 #include "arduino_secrets.h"
 
-WiFiServer server(80);
+#define CALIBRATION_FLAG false
 
 LF_SData sensorData;
-
-#define CALIBRATION_FLAG false
-#define DEBUG_FLAG false
-#define SETUP_WIFI false
 
 /*
     -- sensor pins --
@@ -28,15 +24,20 @@ LF_SData sensorData;
 #define M2PWM D6  // PWM 
 MotorDriver motors(M1DIR, M1PWM, M2DIR, M2PWM);
 
-double MAX_OUTPUT = 35;
+#define IR_PIN D8
+
+unsigned long startTime = 0;
+unsigned long accelerationTime = 5000; // 5 seconds
 
 bool robotActive = false;
 
-double BASE_SPEED = 40; 
+double MAX_OUTPUT = 75;
+double setBaseSpeed = 85;
 
-double KP = 0.0375;
+
+double KP = 0.06;
 double KI = 0.00;
-double KD = 1.0;
+double KD = 1.1;
 
 const float alpha = 0.9; // Lower = smoother but slower response
 double smoothed_error = 0;
@@ -46,6 +47,30 @@ const float dAlpha = 0.85;
 
 double integral = 0;
 double previousError = 0;
+
+double BASE_SPEED = 0;
+
+void start_stop() {
+    // IR handling
+    if (IrReceiver.decode()) {
+        uint8_t cmd = IrReceiver.decodedIRData.command;
+
+        if (cmd == 0x45) { 
+            robotActive = true;
+            Serial.print("Robot started");
+            Serial.println(cmd, HEX);
+        } else if (cmd == 0x46) {
+            robotActive = false;
+            Serial.print("Robot stopped");
+            Serial.println(cmd, HEX);
+        } else {
+            Serial.print("Unknown command: ");
+            Serial.println(cmd, HEX);
+        }
+
+        IrReceiver.resume(); // ready to receive the next command
+    }
+}
 
 double PID(double error) {
     integral += error;
@@ -60,35 +85,7 @@ double PID(double error) {
 }
 
 void setup() {
-    if (DEBUG_FLAG) {
-        Serial.begin(115200);
-        while (!Serial) {
-            ;
-        }
-
-        if (SETUP_WIFI) {
-            delay(5000);
-        }
-
-        // Create Wi-Fi Access Point
-        Serial.println("Starting Access Point...");
-    }
-    
-    if (WiFi.beginAP(SECRET_SSID, SECRET_PASS) != WL_AP_LISTENING) {
-        if (DEBUG_FLAG) Serial.println("Failed to start AP");
-        while (true); // halt
-    }
-
-    if (DEBUG_FLAG) {
-        Serial.println("Access Point started");
-        Serial.print("IP Address: ");
-        Serial.println(WiFi.localIP()); // This will usually be 192.168.3.1
-    }
-    server.begin();
-
-    if (SETUP_WIFI) {
-        delay(10000);
-    }
+    Serial.begin(115200);
 
     sensorData.setupLineSensors(S0, S1, S2, S3, SIG);
 
@@ -114,14 +111,25 @@ void setup() {
     } else {
         sensorData.calibrateSensors(false);
     }
+
+    IrReceiver.begin(IR_PIN, ENABLE_LED_FEEDBACK); // Init IR receiver
 }
 
 void loop() {
-    handleWeb();
+    start_stop();
 
-    if (DEBUG_FLAG) {
-        sensorData.getLiveSerialPrint(true);
+    if (startTime == 0) {
+        startTime = millis();
     }
+
+    unsigned long elapsedTime = millis() - startTime;
+    if (elapsedTime <= accelerationTime) {
+        BASE_SPEED = map(elapsedTime, 0, accelerationTime, 0, setBaseSpeed);
+    }
+
+    // if (DEBUG_FLAG) {
+    //     sensorData.getLiveSerialPrint(true);
+    // }
 
     int raw_error = sensorData.getLinePosition() - 750;
     smoothed_error = alpha * raw_error + (1 - alpha) * smoothed_error;
@@ -129,17 +137,26 @@ void loop() {
     double pid_output = constrain(PID(smoothed_error), -MAX_OUTPUT, MAX_OUTPUT);
 
 
-    if (DEBUG_FLAG) {
-        Serial.print("Sensor Error: ");
-        Serial.println(smoothed_error);
-        Serial.print("PID: ");
-        Serial.println(pid_output);
-        Serial.print("active?: ");
-        Serial.println(robotActive);
-    }
+    // if (DEBUG_FLAG) {
+    //     Serial.print("Sensor Error: ");
+    //     Serial.println(smoothed_error);
+    //     Serial.print("PID: ");
+    //     Serial.println(pid_output);
+    //     Serial.print("active?: ");
+    //     Serial.println(robotActive);
+    // }
 
-    double left = BASE_SPEED + pid_output; 
+    double left = BASE_SPEED + pid_output;
     double right = BASE_SPEED - pid_output;
+    // double left = constrain(BASE_SPEED + pid_output, -maxSpeed, maxSpeed); // constrain(baseSpeed + correction, 0, maxSpeed);
+    // double right = constrain(BASE_SPEED - pid_output, -maxSpeed, maxSpeed;
+
+
+    // if ((smoothed_error > 2000 && smoothed_error <= 4000) || (smoothed_error >= 11000 && smoothed_error < 13000)) {  // Medium turn
+    //     BASE_SPEED = constrain(setBaseSpeed * 0.9, 50, setBaseSpeed);
+    // } else {                     // Straight line
+    //     BASE_SPEED = setBaseSpeed;  // Restore full speed
+    // }
 
     if (robotActive) {
         motors.setMotor1Speed(left);
@@ -149,13 +166,13 @@ void loop() {
         motors.setMotor2Speed(0);
     }
 
-    if (DEBUG_FLAG) {
-        Serial.print("left = ");
-        Serial.println(left);
+    // if (DEBUG_FLAG) {
+    //     Serial.print("left = ");
+    //     Serial.println(left);
 
-        Serial.print("right = ");
-        Serial.println(right);
-    }
+    //     Serial.print("right = ");
+    //     Serial.println(right);
+    // }
 
-    delay(10);
+    delay(5);
 }
