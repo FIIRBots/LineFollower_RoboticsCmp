@@ -1,3 +1,8 @@
+/*
+    * Copyright (C) 2025 by Dan-Dominic Staicu
+    * 331CA UNSTPB ACS CTI
+*/
+
 #include <Arduino.h>
 #include <IRremote.h>
 

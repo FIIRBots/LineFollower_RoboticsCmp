@@ -1,3 +1,7 @@
+/*
+    * Copyright (C) 2025 by Dan-Dominic Staicu
+    * 331CA UNSTPB ACS CTI
+*/
 #pragma once
 #include <Arduino.h>
 
