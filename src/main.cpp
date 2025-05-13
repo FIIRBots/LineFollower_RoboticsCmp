@@ -40,9 +40,9 @@ double MAX_OUTPUT = 45;
 double setBaseSpeed = 60;
 
 
-double KP = 0.1;
-double KI = 0.00001;
-double KD = 1.0;
+double KP = 0.025;
+double KI = 0.00000;
+double KD = 10.0;
 
 const float alpha = 0.9; // Lower = smoother but slower response
 double smoothed_error = 0;
@@ -82,6 +82,7 @@ double PID(double error) {
 
     double raw_derivative = error - previousError;
     last_derivative = dAlpha * raw_derivative + (1 - dAlpha) * last_derivative;
+    // last_derivative = raw_derivative;
 
     previousError = error;
 
@@ -137,7 +138,7 @@ void loop() {
     // }
 
     int line_value = sensorData.getLinePosition();
-    int raw_error = line_value - 750;
+    int raw_error = line_value - 7500;
     smoothed_error = alpha * raw_error + (1 - alpha) * smoothed_error;
     // smoothed_error = raw_error;
     double pid_output = constrain(PID(smoothed_error), -MAX_OUTPUT, MAX_OUTPUT);
@@ -158,17 +159,17 @@ void loop() {
     // double right = constrain(BASE_SPEED - pid_output, -maxSpeed, maxSpeed;
 
 
-    // if ((line_value > 200 && smoothed_error <= 400) || (smoothed_error >= 1100 && smoothed_error < 1300)) {  // Medium turn
+    // if ((line_value > 2000 && smoothed_error <= 4000) || (smoothed_error >= 11000 && smoothed_error < 13000)) {  // Medium turn
     //     BASE_SPEED = setBaseSpeed * 0.9;
     // } else {                     // Straight line
     //     BASE_SPEED = setBaseSpeed;  // Restore full speed
     // }
 
     if (robotActive) {
-        // if (line_value <= 250) {
+        // if (line_value <= 2500) {
         //     left = 30;
         //     right = -15;
-        // } else if (line_value >= 1250) {
+        // } else if (line_value >= 12500) {
         //     left = -15;
         //     right = 30;
         // } else {
