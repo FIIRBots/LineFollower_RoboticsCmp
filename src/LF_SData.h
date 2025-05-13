@@ -1,6 +1,6 @@
 /*
     * Copyright (C) 2025 by Dan-Dominic Staicu
-    * 331CA UNSTPB ACS CTI
+    * 331CA UNSTPB ACS CTI 
 */
 #ifndef LF_SDATA_H
 #define LF_SDATA_H
