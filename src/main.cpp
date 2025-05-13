@@ -40,9 +40,9 @@ double MAX_OUTPUT = 45;
 double setBaseSpeed = 60;
 
 
-double KP = 0.025;
+double KP = 0.0085;
 double KI = 0.00000;
-double KD = 10.0;
+double KD = 0.50;
 
 const float alpha = 0.9; // Lower = smoother but slower response
 double smoothed_error = 0;
@@ -91,7 +91,7 @@ double PID(double error) {
 }
 
 void setup() {
-    Serial.begin(115200);
+    // Serial.begin(115200);
 
     sensorData.setupLineSensors(S0, S1, S2, S3, SIG);
 
@@ -107,13 +107,13 @@ void setup() {
 
         delay(5000);
     
-        Serial.println("Starting calibration...");
+        // Serial.println("Starting calibration...");
     
         while (millis() - startTime < calibrationTime) {
           sensorData.calibrateSensors(true);
         }
 
-        Serial.println("Calibration complete.");
+        // Serial.println("Calibration complete.");
     } else {
         sensorData.calibrateSensors(false);
     }
