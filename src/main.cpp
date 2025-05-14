@@ -36,13 +36,13 @@ unsigned long accelerationTime = 5000; // 5 seconds
 
 bool robotActive = false;
 
-double MAX_OUTPUT = 45;
-double setBaseSpeed = 60;
+double MAX_OUTPUT = 60;
+double setBaseSpeed = 75;
 
 
-double KP = 0.0085;
-double KI = 0.00000;
-double KD = 0.50;
+double KP = 0.0075;
+double KI = 0.000001;
+double KD = 0.65;
 
 const float alpha = 0.9; // Lower = smoother but slower response
 double smoothed_error = 0;
