@@ -36,13 +36,13 @@ unsigned long accelerationTime = 5000; // 5 seconds
 
 bool robotActive = false;
 
-double MAX_OUTPUT = 60;
-double setBaseSpeed = 75;
+double MAX_OUTPUT = 65;
+double setBaseSpeed = 80;
 
 
-double KP = 0.0075;
-double KI = 0.000001;
-double KD = 0.65;
+double KP = 0.0086; // todo maybe a bit lower
+double KI = 0.000002; // todo play
+double KD = 0.85; //todo increase 
 
 const float alpha = 0.9; // Lower = smoother but slower response
 double smoothed_error = 0;
