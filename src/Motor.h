@@ -30,12 +30,17 @@ public:
         speedPercent = constrain(speedPercent, -100, 100);
         lastSpeed_   = speedPercent;
 
-        const bool fwd = (speedPercent >= 0);
-        const int pwm = fwd
-            ? map(speedPercent, 0, 100, 255, 0)     // FORWARD: 0 = stop, 100 = full
-            : map(-speedPercent, 0, 100, 0, 255);   // REVERSE: -1 = fast, -100 = stop
+        const int speed = map(abs(speedPercent), 0, 100, 0, 255);
+        const bool fwd = (speedPercent < 0);
 
-        digitalWrite(dirPin_, (fwd ^ inv_) ? HIGH : LOW);
+        int pwm = 0;
+        if (fwd) {
+          pwm = 255 - speed;
+        } else {
+          pwm = speed;
+        }
+
+        digitalWrite(dirPin_, (fwd ^ inv_) ? LOW : HIGH);
         analogWrite (pwmPin_, pwm);
     }
 

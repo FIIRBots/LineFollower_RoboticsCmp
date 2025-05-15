@@ -92,6 +92,7 @@ double PID(double error) {
 
 void setup() {
     // Serial.begin(115200);
+    motors.begin();
 
     sensorData.setupLineSensors(S0, S1, S2, S3, SIG);
 
@@ -171,15 +172,19 @@ void loop() {
         // FOR DRAG race
         if (elapsedTime < first_line_time) {
             if (line_value <= 2500) {
-                // left = 0;
-                // right = 0;
+                left = -50;
+                right = -50;
 
-                robotActive = false;
+                //alternativa
+                // motors.brakeAll();
+
             } else if (line_value >= 12500) {
-                // left = 0;
-                // right = 0;
+                left = -50;
+                right = -50;
 
-                robotActive = false;
+                //alternativa
+                // motors.brakeAll();
+
             } else {
                 motors.setMotor1Speed(left);
                 motors.setMotor2Speed(right);
