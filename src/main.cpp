@@ -165,20 +165,45 @@ void loop() {
     //     BASE_SPEED = setBaseSpeed;  // Restore full speed
     // }
 
+    int first_line_time = 1000; // 1 second ADJUST AS NEEDED
+
     if (robotActive) {
+        // FOR DRAG race
+        if (elapsedTime < first_line_time) {
+            if (line_value <= 2500) {
+                // left = 0;
+                // right = 0;
+
+                robotActive = false;
+            } else if (line_value >= 12500) {
+                // left = 0;
+                // right = 0;
+
+                robotActive = false;
+            } else {
+                motors.setMotor1Speed(left);
+                motors.setMotor2Speed(right);
+            }
+        } else {
+            motors.setMotor1Speed(left);
+            motors.setMotor2Speed(right);
+        }
+
+
         // if (line_value <= 2500) {
-        //     left = 30;
-        //     right = -15;
+        //     left = ;
+        //     right = 0;
         // } else if (line_value >= 12500) {
-        //     left = -15;
-        //     right = 30;
+        //     left = 0;
+        //     right = 0;
         // } else {
         //     motors.setMotor1Speed(left);
         //     motors.setMotor2Speed(right);
         // }
 
-        motors.setMotor1Speed(left);
-        motors.setMotor2Speed(right);
+        // FOR CLASIC
+        // motors.setMotor1Speed(left);
+        // motors.setMotor2Speed(right);
 
     } else {
         motors.setMotor1Speed(0);

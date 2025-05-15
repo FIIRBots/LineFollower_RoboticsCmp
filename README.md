@@ -22,54 +22,12 @@ This project is a line-following robot, developed using an Arduino Portenta H7. 
 8.5. **Chassis and Mounts** - 3D-printed parts (see 3D Model section) for housing the sensors, motors, and microcontroller.
 
 ### Software Libraries
-- **DRV8835MotorShield** - For motor control.
+- **HR8833MotorShield** - For motor control.
 - **WiFi** - For web interface and real-time parameter adjustments.
 
-## Circuit Diagram
 
-Connect the components as follows:
-- **DRV8835 Motor Driver**: Connect M1DIR, M1PWM, M2DIR, M2PWM pins to custom GPIO pins 19, 18, 16, and 17 respectively.
-- **Sensor Array**: Connect each of the 13 sensors to GPIO pins as defined in the code.
-- **Portenta H7 Power and Ground**: Ensure a stable power source is connected to the ESP32 and motors.
 
 ## 3D Model ToDo
 
 The chassis and sensor mounts are designed to be 3D-printed for robustness and optimal sensor positioning. The STL files for 3D printing can be found in the `3d-models` folder of this repository.
 
-
-
-# Managing CA Certs for TLS connections
-
-## Generating `certificates.h` from PEM file:
-
-> [!NOTE]
-> Pre-requisites: `xxd` from `vim` packages or standalone
-```
-xxd -i cacert.pem -n cacert_pem | sed 's/^unsigned/const unsigned/g' > certificates.h
-```
-
-## Getting PEM file from `certificates.h`
-
-> [!NOTE]
-> Pre-requisites: `xxd`, GNU Tools (Use g-tools on MacOS: e.g., `gtail`, `ghead`)
-```
-cat certificates.h | tail -n +2 | head -n -2 | xxd -r -p > cacert.pem
-```
-## Listing certifcates in `certificates.h`
-
-> [!NOTE]
-> Pre-requisites: `openssl`
-
-```
-cat certificates.h | tail -n +2 | head -n -2 | xxd -r -p > cacert.pem
-openssl crl2pkcs7 -nocrl -certfile cacert.pem | openssl pkcs7 -print_certs | grep '^subject'
-```
-
-## Adding a new root certificate to `certificates.h`
-
-> [!Note]
-> The PEM file for the root CA to add, e.g., `new_root.pem` 
-
-```
-cat certificates.h | tail -n +2 | head -n -2 | xxd -r -p | cat - new_root.pem | xxd -n cacert_pem -i | sed 's/^unsigned/const unsigned/g' > certificates.h
-```
