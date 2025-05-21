@@ -1,4 +1,4 @@
-# Line-Following Robot for 2024 Robochallenge
+# Line-Following Robot
 
 This project is a line-following robot, developed using an Arduino Portenta H7. The robot uses PID (Proportional-Integral-Derivative) control to adjust its motors based on feedback from a line sensor array. This implementation includes a web interface for tuning PID values and other parameters in real-time.
 
