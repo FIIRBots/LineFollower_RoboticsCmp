@@ -2,7 +2,6 @@
     * Copyright (C) 2025 by Dan-Dominic Staicu
     * 331CA UNSTPB ACS CTI
 */
-
 #include <Arduino.h>
 #include <IRremote.h>
 
@@ -36,19 +35,19 @@ unsigned long accelerationTime = 5000; // 5 seconds
 
 bool robotActive = false;
 
-double MAX_OUTPUT = 65;
-double setBaseSpeed = 80;
+double MAX_OUTPUT = 80;
+double setBaseSpeed = 90;
 
 
-double KP = 0.0086; // todo maybe a bit lower
+double KP = 0.0018; // todo maybe a bit lower
 double KI = 0.000002; // todo play
-double KD = 0.85; //todo increase 
+double KD = 0.60; //todo increase 
 
-const float alpha = 0.9; // Lower = smoother but slower response
+const float alpha = 0.88; // Lower = smoother but slower response
 double smoothed_error = 0;
 
 double last_derivative = 0;
-const float dAlpha = 0.85;
+const float dAlpha = 0.90;
 
 double integral = 0;
 double previousError = 0;
@@ -60,13 +59,17 @@ void start_stop() {
     if (IrReceiver.decode()) {
         uint8_t cmd = IrReceiver.decodedIRData.command;
 
-        if (cmd == 0x45) { 
+        if (cmd == 0x45) {
             robotActive = true;
-            Serial.print("Robot started");
+            Serial.print("Robot started: ");
             Serial.println(cmd, HEX);
         } else if (cmd == 0x46) {
             robotActive = false;
-            Serial.print("Robot stopped");
+            Serial.print("Robot stopped: ");
+            Serial.println(cmd, HEX);
+        } else if (cmd == 0x47) {
+            robotActive = true;
+            Serial.print("Drag remote signal: ");
             Serial.println(cmd, HEX);
         } else {
             Serial.print("Unknown command: ");
@@ -108,13 +111,13 @@ void setup() {
 
         delay(5000);
     
-        // Serial.println("Starting calibration...");
+        Serial.println("Starting calibration...");
     
         while (millis() - startTime < calibrationTime) {
           sensorData.calibrateSensors(true);
         }
 
-        // Serial.println("Calibration complete.");
+        Serial.println("Calibration complete.");
     } else {
         sensorData.calibrateSensors(false);
     }
@@ -134,7 +137,7 @@ void loop() {
         BASE_SPEED = map(elapsedTime, 0, accelerationTime, 0, setBaseSpeed);
     }
 
-    // if (DEBUG_FLAG) {
+    // if (true) {
     //     sensorData.getLiveSerialPrint(true);
     // }
 
@@ -145,7 +148,7 @@ void loop() {
     double pid_output = constrain(PID(smoothed_error), -MAX_OUTPUT, MAX_OUTPUT);
 
 
-    // if (DEBUG_FLAG) {
+    // if (true) {
     //     Serial.print("Sensor Error: ");
     //     Serial.println(smoothed_error);
     //     Serial.print("PID: ");
@@ -160,59 +163,68 @@ void loop() {
     // double right = constrain(BASE_SPEED - pid_output, -maxSpeed, maxSpeed;
 
 
-    // if ((line_value > 2000 && smoothed_error <= 4000) || (smoothed_error >= 11000 && smoothed_error < 13000)) {  // Medium turn
-    //     BASE_SPEED = setBaseSpeed * 0.9;
-    // } else {                     // Straight line
-    //     BASE_SPEED = setBaseSpeed;  // Restore full speed
-    // }
+    if ((line_value > 2000 && smoothed_error <= 4000) || (smoothed_error >= 11000 && smoothed_error < 13000)) {  // Medium turn
+        BASE_SPEED = setBaseSpeed * 0.9; // maybe 0.85
+    } else {                     // Straight line
+        BASE_SPEED = setBaseSpeed;  // Restore full speed
+    }
 
-    int first_line_time = 1000; // 1 second ADJUST AS NEEDED
+    // unsigned long first_line_time = 1000; // 1 second ADJUST AS NEEDED
 
     if (robotActive) {
         // FOR DRAG race
-        if (elapsedTime < first_line_time) {
-            if (line_value <= 2500) {
-                left = -50;
-                right = -50;
+        // if (elapsedTime < first_line_time) {
+        //     if (line_value <= 2500) {
+        //         left = -50;
+        //         right = -50;
 
-                //alternativa
-                // motors.brakeAll();
+        //         // alternativa
+        //         // motors.brakeAll();
 
-            } else if (line_value >= 12500) {
-                left = -50;
-                right = -50;
+        //     } else if (line_value >= 12500) {
+        //         left = -50;
+        //         right = -50;
 
-                //alternativa
-                // motors.brakeAll();
+        //         // alternativa
+        //         // motors.brakeAll();
 
-            } else {
-                motors.setMotor1Speed(left);
-                motors.setMotor2Speed(right);
-            }
-        } else {
-            motors.setMotor1Speed(left);
-            motors.setMotor2Speed(right);
-        }
-
-
-        // if (line_value <= 2500) {
-        //     left = ;
-        //     right = 0;
-        // } else if (line_value >= 12500) {
-        //     left = 0;
-        //     right = 0;
+        //     } else {
+        //         motors.setMotor1Speed(left);
+        //         motors.setMotor2Speed(right);
+        //     }
         // } else {
         //     motors.setMotor1Speed(left);
         //     motors.setMotor2Speed(right);
         // }
 
+
+        if (line_value <= 1500) {
+            left = -75;
+            right = 90;
+        } else if (line_value >= 14500) {
+            left = 90;
+            right = -75;
+        } else if (line_value <= 2500) {
+            left = -45;
+            right = 75;
+        } else if (line_value >= 13500) {
+            left = 75;
+            right = -45;
+        } 
+        // else {
+        //     motors.setMotor1Speed(left);
+        //     motors.setMotor2Speed(right);
+        // }
+
         // FOR CLASIC
-        // motors.setMotor1Speed(left);
-        // motors.setMotor2Speed(right);
+        motors.setMotor1Speed(left);
+        motors.setMotor2Speed(right);
 
     } else {
         motors.setMotor1Speed(0);
         motors.setMotor2Speed(0);
+
+        startTime = 0;
     }
 
     // if (DEBUG_FLAG) {
@@ -223,5 +235,6 @@ void loop() {
     //     Serial.println(right);
     // }
 
-    delay(10);
+    delay(5);
+    // delay(1000);
 }

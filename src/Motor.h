@@ -35,9 +35,9 @@ public:
 
         int pwm = 0;
         if (fwd) {
-          pwm = 255 - speed;
-        } else {
           pwm = speed;
+        } else {
+          pwm = 255 - speed;
         }
 
         digitalWrite(dirPin_, (fwd ^ inv_) ? LOW : HIGH);
@@ -51,7 +51,7 @@ public:
 
     /** fast stop (both low‑side FETs ON) – HR8833 only */
     void brake() {
-        digitalWrite(dirPin_, LOW ^ inv_);
+        digitalWrite(dirPin_, HIGH ^ inv_);
         analogWrite(pwmPin_, 255);
     }
 
