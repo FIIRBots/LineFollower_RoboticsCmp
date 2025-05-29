@@ -90,7 +90,7 @@ void LF_SData::calibrateSensors(bool fullCalibration) {
 
         saveCalibration();
     } else {
-        Serial.println("Loading calibration data...");
+        // Serial.println("Loading calibration data...");
 
         loadCalibration();
     }

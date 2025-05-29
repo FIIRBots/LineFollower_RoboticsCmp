@@ -4,11 +4,6 @@ void handleWeb() {
     WiFiClient client = server.accept();
     if (!client) return;
 
-    // if (true) {
-    //     Serial.print("Client connected: ");
-    //     Serial.println(client.remoteIP());
-    // }
-
     String req = client.readStringUntil('\r');
     client.readStringUntil('\n');
 

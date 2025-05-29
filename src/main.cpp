@@ -39,7 +39,7 @@ MotorDriver motors(M1DIR, M1PWM, M2DIR, M2PWM);
 #define IR_PIN D8
 
 unsigned long startTime = 0;
-unsigned long accelerationTime = 2000; // 5 seconds
+unsigned long accelerationTime = 3000; // 5 seconds
 
 bool robotActive = false;
 
@@ -69,20 +69,11 @@ void start_stop() {
 
         if (cmd == 0x45) {
             robotActive = true;
-            // Serial.print("Robot started: ");
-            // Serial.println(cmd, HEX);
         } else if (cmd == 0x46) {
             robotActive = false;
-            // Serial.print("Robot stopped: ");
-            // Serial.println(cmd, HEX);
         } else if (cmd == 0x47) {
             robotActive = true;
-            // Serial.print("Drag remote signal: ");
-            // Serial.println(cmd, HEX);
-        } else {
-            // Serial.print("Unknown command: ");
-            // Serial.println(cmd, HEX);
-        }
+        } 
 
         IrReceiver.resume(); // ready to receive the next command
     }
@@ -102,7 +93,7 @@ double PID(double error) {
 }
 
 void setup() {
-    Serial.begin(115200);
+    // Serial.begin(115200);
     motors.begin();
 
     sensorData.setupLineSensors(S0, S1, S2, S3, SIG);
@@ -131,36 +122,19 @@ void setup() {
     }
 
     IrReceiver.begin(IR_PIN, ENABLE_LED_FEEDBACK); // Init IR receiver
-
-    // if (DEBUG_FLAG) {
-    //     Serial.begin(115200);
-    //     while (!Serial) {
-    //         ;
-    //     }
-
-    //     if (SETUP_WIFI) {
-    //         delay(5000);
-    //     }
-
-    //     // Create Wi-Fi Access Point
-    //     Serial.println("Starting Access Point...");
-    // }
     
     if (WiFi.beginAP(SECRET_SSID, SECRET_PASS) != WL_AP_LISTENING) {
-        // if (DEBUG_FLAG) Serial.println("Failed to start AP");
+        if (DEBUG_FLAG) Serial.println("Failed to start AP");
         while (true); // halt
     }
 
     server.begin();
-    // if (DEBUG_FLAG) {
-    //     Serial.println("Web server started on port 80");
-    // }
 
-    // if (DEBUG_FLAG) {
-    //     Serial.println("Access Point started");
-    //     Serial.print("IP Address: ");
-    //     Serial.println(WiFi.localIP()); // This will usually be 192.168.3.1
-    // }
+    if (DEBUG_FLAG) {
+        Serial.println("Access Point started");
+        Serial.print("IP Address: ");
+        Serial.println(WiFi.localIP()); // This will usually be 192.168.3.1
+    }
 }
 
 void loop() {
@@ -198,9 +172,6 @@ void loop() {
 
     double left = BASE_SPEED + pid_output;
     double right = BASE_SPEED - pid_output;
-    // double left = constrain(BASE_SPEED + pid_output, -maxSpeed, maxSpeed); // constrain(baseSpeed + correction, 0, maxSpeed);
-    // double right = constrain(BASE_SPEED - pid_output, -maxSpeed, maxSpeed;
-
 
     if ((line_value > 2000 && smoothed_error <= 4000) || (smoothed_error >= 11000 && smoothed_error < 13000)) {  // Medium turn
         BASE_SPEED = setBaseSpeed * 0.9; // maybe 0.85
@@ -208,35 +179,7 @@ void loop() {
         BASE_SPEED = setBaseSpeed;  // Restore full speed
     }
 
-    // unsigned long first_line_time = 1000; // 1 second ADJUST AS NEEDED
-
     if (robotActive) {
-        // FOR DRAG race
-        // if (elapsedTime < first_line_time) {
-        //     if (line_value <= 2500) {
-        //         left = -50;
-        //         right = -50;
-
-        //         // alternativa
-        //         // motors.brakeAll();
-
-        //     } else if (line_value >= 12500) {
-        //         left = -50;
-        //         right = -50;
-
-        //         // alternativa
-        //         // motors.brakeAll();
-
-        //     } else {
-        //         motors.setMotor1Speed(left);
-        //         motors.setMotor2Speed(right);
-        //     }
-        // } else {
-        //     motors.setMotor1Speed(left);
-        //     motors.setMotor2Speed(right);
-        // }
-
-
         if (line_value <= 1500) {
             left = -45;
             right = 60;
@@ -250,10 +193,6 @@ void loop() {
             left = 55;
             right = -25;
         } 
-        // else {
-        //     motors.setMotor1Speed(left);
-        //     motors.setMotor2Speed(right);
-        // }
 
         // FOR CLASIC
         motors.setMotor1Speed(left);
