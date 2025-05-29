@@ -4,12 +4,20 @@
 */
 #include <Arduino.h>
 #include <IRremote.h>
+#include <WiFi.h>
+#include <WiFiServer.h>
 
 #include "LF_SData.h"
 #include "MotorDriver.h"
 #include "arduino_secrets.h"
+#include "WebServerHandler.h"
+#include "arduino_secrets.h"
 
-#define CALIBRATION_FLAG false
+#define DEBUG_FLAG false
+#define SETUP_WIFI false
+#define CALIBRATION_FLAG true
+
+WiFiServer server(80);
 
 LF_SData sensorData;
 
@@ -31,12 +39,12 @@ MotorDriver motors(M1DIR, M1PWM, M2DIR, M2PWM);
 #define IR_PIN D8
 
 unsigned long startTime = 0;
-unsigned long accelerationTime = 5000; // 5 seconds
+unsigned long accelerationTime = 2000; // 5 seconds
 
 bool robotActive = false;
 
-double MAX_OUTPUT = 80;
-double setBaseSpeed = 90;
+double MAX_OUTPUT = 40;
+double setBaseSpeed = 50;
 
 
 double KP = 0.0018; // todo maybe a bit lower
@@ -61,19 +69,19 @@ void start_stop() {
 
         if (cmd == 0x45) {
             robotActive = true;
-            Serial.print("Robot started: ");
-            Serial.println(cmd, HEX);
+            // Serial.print("Robot started: ");
+            // Serial.println(cmd, HEX);
         } else if (cmd == 0x46) {
             robotActive = false;
-            Serial.print("Robot stopped: ");
-            Serial.println(cmd, HEX);
+            // Serial.print("Robot stopped: ");
+            // Serial.println(cmd, HEX);
         } else if (cmd == 0x47) {
             robotActive = true;
-            Serial.print("Drag remote signal: ");
-            Serial.println(cmd, HEX);
+            // Serial.print("Drag remote signal: ");
+            // Serial.println(cmd, HEX);
         } else {
-            Serial.print("Unknown command: ");
-            Serial.println(cmd, HEX);
+            // Serial.print("Unknown command: ");
+            // Serial.println(cmd, HEX);
         }
 
         IrReceiver.resume(); // ready to receive the next command
@@ -94,7 +102,7 @@ double PID(double error) {
 }
 
 void setup() {
-    // Serial.begin(115200);
+    Serial.begin(115200);
     motors.begin();
 
     sensorData.setupLineSensors(S0, S1, S2, S3, SIG);
@@ -123,9 +131,40 @@ void setup() {
     }
 
     IrReceiver.begin(IR_PIN, ENABLE_LED_FEEDBACK); // Init IR receiver
+
+    // if (DEBUG_FLAG) {
+    //     Serial.begin(115200);
+    //     while (!Serial) {
+    //         ;
+    //     }
+
+    //     if (SETUP_WIFI) {
+    //         delay(5000);
+    //     }
+
+    //     // Create Wi-Fi Access Point
+    //     Serial.println("Starting Access Point...");
+    // }
+    
+    if (WiFi.beginAP(SECRET_SSID, SECRET_PASS) != WL_AP_LISTENING) {
+        // if (DEBUG_FLAG) Serial.println("Failed to start AP");
+        while (true); // halt
+    }
+
+    server.begin();
+    // if (DEBUG_FLAG) {
+    //     Serial.println("Web server started on port 80");
+    // }
+
+    // if (DEBUG_FLAG) {
+    //     Serial.println("Access Point started");
+    //     Serial.print("IP Address: ");
+    //     Serial.println(WiFi.localIP()); // This will usually be 192.168.3.1
+    // }
 }
 
 void loop() {
+    handleWeb();
     start_stop();
 
     if (startTime == 0) {
@@ -137,9 +176,9 @@ void loop() {
         BASE_SPEED = map(elapsedTime, 0, accelerationTime, 0, setBaseSpeed);
     }
 
-    // if (true) {
-    //     sensorData.getLiveSerialPrint(true);
-    // }
+    if (true) {
+        sensorData.getLiveSerialPrint(true);
+    }
 
     int line_value = sensorData.getLinePosition();
     int raw_error = line_value - 7500;
@@ -199,17 +238,17 @@ void loop() {
 
 
         if (line_value <= 1500) {
-            left = -75;
-            right = 90;
-        } else if (line_value >= 14500) {
-            left = 90;
-            right = -75;
-        } else if (line_value <= 2500) {
             left = -45;
-            right = 75;
-        } else if (line_value >= 13500) {
-            left = 75;
+            right = 60;
+        } else if (line_value >= 14500) {
+            left = 60;
             right = -45;
+        } else if (line_value <= 2500) {
+            left = -25;
+            right = 55;
+        } else if (line_value >= 13500) {
+            left = 55;
+            right = -25;
         } 
         // else {
         //     motors.setMotor1Speed(left);
